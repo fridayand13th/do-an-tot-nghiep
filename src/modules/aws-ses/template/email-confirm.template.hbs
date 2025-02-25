@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <title>Email Confirmation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      a {
+        color: #030303 !important;
+        text-decoration: none;
+      }
+    </style>
+    </head>
+  <body style="background-color: #fcfcf9;font-family: Arial, sans-serif;color: #333333;margin: 0;padding: 0;">
+    <!-- Main email container (centered) -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+      style="background-color: #fffffd; padding: 0; margin: 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+            style="box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);border-radius: 8px;">
+
+              <!-- start logo -->
+              <tr>
+                <td align="center" style="background-color:rgb(253, 253, 253);">
+                  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;">
+                    <tr>
+                      <td align="center" valign="top" style="padding: 36px 24px;">
+                        <a href="#" target="_blank" style="display: inline-block;">
+                          <img src="https://web.beeeye.kr/_next/image?url=%2Fimages%2Flogo.png&w=256&q=75" alt="Logo" border="0" width="48"
+                            style="display: block; width: 100px; height:40px; min-width: 48px;">
+                        </a>
+                      </td>
+                      </tr>
+                      </table>
+                      </td>
+                      </tr>
+              <!-- end logo -->
+              <!-- Hero Section -->
+              <tr>
+              <td style="background-color:#e1f134; color: #141313;text-align: center;padding: 40px 20px;">
+                <h1 style="margin: 0; font-size: 24px; font-weight: bold">
+                  Verify your E-mail Address
+                </h1>
+                <p style="margin: 10px 0 0; font-size: 16px">
+                  Thanks for signing up!
+                </p>
+              </td>
+              </tr>
+
+            <!-- Main Content Section -->
+            <tr>
+              <td style="padding: 20px; background-color: #fcfcfa;">
+                <h2 style="color: #030303; font-size: 20px; text-align:center;">
+                  Hello {{email}},
+                </h2>
+                <p style="line-height: 1.6; font-size: 16px; text-align:center; color:#030303 !important;">
+                  Tap the button below to confirm your email address. If you
+                  didn't create an account with BeeEye, you can safely delete
+                  this email.
+                </p>
+              
+                <!-- Form with POST method -->
+                <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="text-align: center;">
+                <tr>
+                  <td align="center">
+                    <p style="text-align: center; margin-top: 20px;">
+                      <a href="{{link}}"
+                        style="padding: 10px 20px; background-color: #e1f134; color: #141313; text-align: center; text-decoration: none; border-radius: 4px; font-weight: bold; margin: 20px 0;">
+                      Verify Email
+                      </a>
+                      </p>
+                  </td>
+                </tr>
+                </table>
+
+              </td>
+              </tr>
+
+            <!-- Footer Section -->
+            <tr>
+              <td style="background-color: #f4f4f7;text-align: center;padding: 20px;font-size: 12px;color: #999;">
+                <p style="margin: 0">
+                  You received this email because we received a request to
+                  create an account. If it wasn't you, you can safely delete
+                  this email.
+                </p>
+                <p style="margin: 0">© 2024 BeeEye. All Rights Reserved.</p>
+              </td>
+              </tr>
+          </table>
+        </td>
+        </tr>
+    </table>
+  </body>
+</html>

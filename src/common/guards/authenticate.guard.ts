@@ -1,0 +1,67 @@
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ErrorHelper } from 'src/helpers/error.utils';
+import { ROLES_KEY } from 'src/constants/base.constant';
+import { TokenHelper } from 'src/helpers/token.helper';
+import { ConfigService } from '@nestjs/config';
+import { IToken } from 'src/interfaces/auth.interface';
+import { UsersService } from 'src/modules/users/users.service';
+import * as USER_MESSAGE from 'src/common/messages/user.message';
+// import { RedisService } from 'src/modules/redis/redis.service';
+
+@Injectable()
+export class AuthRoleGuard implements CanActivate {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly configService: ConfigService,
+    private readonly usersService: UsersService, // private readonly redisService: RedisService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const req = context.switchToHttp().getRequest();
+    const authorization = req.headers.authorization || String(req.cookies.JWT);
+
+    if (!authorization) {
+      ErrorHelper.UnauthorizedException('Unauthorized');
+    }
+
+    const user = await this.verifyAccessToken(authorization);
+    req.user = user;
+    const userfound = await this.usersService.findById(user.id);
+
+    if (!userfound.isVerified) {
+      ErrorHelper.ForbiddenException(USER_MESSAGE.INACTIVE_ACCOUNT);
+    }
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (requiredRoles && !this.hasRole(user, requiredRoles)) {
+      ErrorHelper.ForbiddenException('You do not have the required permissions.');
+    }
+
+    return true;
+  }
+
+  async verifyAccessToken(authorization: string) {
+    const [bearer, accessToken] = authorization.split(' ');
+    if (bearer === 'Bearer' && accessToken) {
+      const payload: IToken = TokenHelper.verify(accessToken, this.configService.get('ACCESS_TOKEN_SECRET'));
+
+      // const isMember = await this.redisService.sismember(`user:${payload.id}:accessTokens`, accessToken);
+
+      // if (isMember !== 1) {
+      //   ErrorHelper.UnauthorizedException('Invalid access token');
+      // }
+
+      return payload;
+    } else {
+      ErrorHelper.UnauthorizedException('Unauthorized');
+    }
+  }
+
+  hasRole(user: any, requiredRoles: string[]): boolean {
+    return user.roles && requiredRoles.includes(user.roles);
+  }
+}
