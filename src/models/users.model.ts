@@ -1,8 +1,5 @@
 import { Table, Column, DataType, HasMany } from 'sequelize-typescript';
 import { BaseModel } from './base.model';
-import { Transactions } from './transactions.model';
-import { ApiKey } from './api-keys.model';
-import { QuestionAndAnswers } from './question-and-answers.model';
 
 @Table({
   tableName: 'users',
@@ -72,12 +69,4 @@ export class Users extends BaseModel<Users> {
   })
   isVerified!: boolean;
 
-  @HasMany(() => Transactions)
-  transaction: Transactions;
-
-  @HasMany(() => ApiKey)
-  apiKey!: ApiKey[];
-
-  @HasMany(() => Transactions)
-  questionAndAnswers: QuestionAndAnswers[];
 }

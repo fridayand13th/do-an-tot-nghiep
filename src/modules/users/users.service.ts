@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/sequelize';
 import { ChangePasswordDto, CreateUserDto, UpdateUserDto, UpdateUserStatusDto } from './dto/user.dto';
 import { Users } from 'src/models';
-import { UserPoints } from 'src/models';
 import { col, fn, literal, Op, Sequelize } from 'sequelize';
 import { EncryptHelper } from 'src/helpers/encrypt.helper';
 import { ErrorHelper } from 'src/helpers/error.utils';
@@ -22,8 +21,6 @@ export class UsersService {
   constructor(
     @InjectModel(Users)
     private readonly userModel: typeof Users,
-    @InjectModel(UserPoints)
-    private readonly userPointModel: typeof UserPoints,
     private configService: ConfigService,
     @InjectConnection()
     private readonly sequelize: Sequelize,
@@ -119,13 +116,6 @@ export class UsersService {
         {
           transaction,
         },
-      );
-      await this.userPointModel.create(
-        {
-          userId: user.id,
-          points: 0,
-        },
-        { transaction },
       );
       await transaction.commit();
     } catch (error) {
