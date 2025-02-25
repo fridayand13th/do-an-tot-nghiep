@@ -1,20 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { ErrorHelper } from 'src/helpers/error.utils';
-import { ROLES_KEY } from 'src/constants/base.constant';
 import { TokenHelper } from 'src/helpers/token.helper';
 import { ConfigService } from '@nestjs/config';
 import { IToken } from 'src/interfaces/auth.interface';
 import { UsersService } from 'src/modules/users/users.service';
 import * as USER_MESSAGE from 'src/common/messages/user.message';
-// import { RedisService } from 'src/modules/redis/redis.service';
 
 @Injectable()
 export class AuthRoleGuard implements CanActivate {
   constructor(
-    private readonly reflector: Reflector,
     private readonly configService: ConfigService,
-    private readonly usersService: UsersService, // private readonly redisService: RedisService,
+    private readonly usersService: UsersService, 
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,17 +25,10 @@ export class AuthRoleGuard implements CanActivate {
     req.user = user;
     const userfound = await this.usersService.findById(user.id);
 
-    if (!userfound.isVerified) {
-      ErrorHelper.ForbiddenException(USER_MESSAGE.INACTIVE_ACCOUNT);
+    if (!userfound) {
+      ErrorHelper.ForbiddenException(USER_MESSAGE.NOT_FOUND);
     }
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
 
-    if (requiredRoles && !this.hasRole(user, requiredRoles)) {
-      ErrorHelper.ForbiddenException('You do not have the required permissions.');
-    }
 
     return true;
   }
@@ -61,7 +50,4 @@ export class AuthRoleGuard implements CanActivate {
     }
   }
 
-  hasRole(user: any, requiredRoles: string[]): boolean {
-    return user.roles && requiredRoles.includes(user.roles);
-  }
 }

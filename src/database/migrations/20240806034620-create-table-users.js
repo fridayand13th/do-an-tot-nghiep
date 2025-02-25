@@ -26,26 +26,14 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
-      zip_code: {
-        type: Sequelize.STRING(20),
-        allowNull: true,
-      },
-      address: {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-      contact_number: {
-        type: Sequelize.STRING(20),
-        allowNull: true,
-      },
-      avt_url: {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-      is_admin: {
-        type: Sequelize.BOOLEAN,
+      refreshToken: {
+        type: Sequelize.STRING(100),
         allowNull: false,
-        defaultValue: false,
+        unique: true,
+      },
+      refreshTokenExpireDate: {
+        type: Sequelize.DATE,
+        allowNull: false,
       },
       created_at: {
         type: Sequelize.DATE,

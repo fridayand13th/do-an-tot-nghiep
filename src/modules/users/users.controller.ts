@@ -23,7 +23,6 @@ import { Roles } from 'src/common/decorators/role.decorator';
 import { ERoles } from 'src/enums/base.enum';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { S3Service } from '../s3/s3.service';
-import { UserType } from 'src/enums/user.enum';
 
 @ApiTags('User')
 @Controller('users')

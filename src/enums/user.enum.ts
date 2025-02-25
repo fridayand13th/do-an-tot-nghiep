@@ -4,7 +4,4 @@ export enum UserGenderEnum {
   Other = 'other',
 }
 
-export enum UserType {
-  ADMIN = 'ADMIN',
-  CLIENT = 'CLIENT',
-}
+

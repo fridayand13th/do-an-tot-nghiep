@@ -14,44 +14,38 @@ import { Users } from 'src/models';
 import { ESubject, ETemplate } from 'src/enums/email.enum';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { CacheService } from 'src/shared/cache/cache.service';
-// import { RedisService } from '../redis/redis.service';
+import { INVALID_TOKEN } from 'src/common/messages/common.message';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
     private userService: UsersService,
-    // private redisService: RedisService,
     private awsSesService: AwsSesService,
     private cacheService: CacheService,
   ) {}
 
   async refreshAccessToken(
     refreshToken: string,
-    //accessToken: string
   ) {
-    const payload: IToken = TokenHelper.verify(refreshToken, this.configService.get('REFRESH_TOKEN_SECRET'));
 
-    //  if ((await this.IsStoredRefreshtoken(refreshToken, payload.id)) !== 1) {
-    //    ErrorHelper.UnauthorizedException('Invalid refresh token');
-    //  }
-    //  await this.redisService.srem(`user:${payload.id}:accessTokens`, accessToken);
-    return this.generateToken({ id: payload.id, roles: payload.roles }, false);
+    const user = await this.userService.findUserByRefreshToken(refreshToken);
+    if(!user){
+      ErrorHelper.UnauthorizedException(INVALID_TOKEN)
+    }
+
+    return this.generateToken({ id: user.id, name: user.firstName+" "+user.lastName }, false);
   }
-
-  //  private async IsStoredRefreshtoken(refreshToken: string, userId: number): Promise<Number> {
-  //    return await this.redisService.sismember(`user:${userId}:refreshTokens`, refreshToken);
-  //  }
 
   async generateToken(payload: IToken, flag: boolean) {
     const secret: string = this.configService.get<string>('ACCESS_TOKEN_SECRET');
     const expiresIn: string = this.configService.get<string>('ACCESS_TOKEN_EXPIRES_IN');
     const { token: accessToken, expires } = TokenHelper.generate(payload, secret, expiresIn);
-    //await this.redisService.sadd(`user:${payload.id}:accessTokens`, accessToken);
     let refreshToken: string | undefined;
 
     if (flag) {
-      refreshToken = await this.generateRefreshToken(payload);
+      refreshToken = uuidv4() ;
     }
 
     return {
@@ -61,13 +55,6 @@ export class AuthService {
     };
   }
 
-  private async generateRefreshToken(payload: IToken): Promise<string> {
-    const secret: string = this.configService.get<string>('REFRESH_TOKEN_SECRET');
-    const expiresIn: string = this.configService.get<string>('REFRESH_TOKEN_EXPIRES_IN');
-    const { token: refreshToken, expires } = TokenHelper.generate(payload, secret, expiresIn);
-    //await this.redisService.sadd(`user:${payload.id}:refreshTokens`, refreshToken);
-    return refreshToken;
-  }
 
   async login(params: LoginDto) {
     const { password, email } = params;
@@ -78,35 +65,32 @@ export class AuthService {
       ErrorHelper.BadRequestException(USER_MESSAGE.WRONG_EMAIL);
     }
 
-    if (!user.isVerified) {
-      ErrorHelper.UnauthorizedException(USER_MESSAGE.INACTIVE_ACCOUNT);
-    }
-
     const isPasswordValid = await EncryptHelper.compare(password, user.password);
 
     if (!isPasswordValid) {
       ErrorHelper.BadRequestException(USER_MESSAGE.WRONG_PASSWORD);
     }
 
-    const role: string = user.isAdmin ? ERoles.ADMIN : ERoles.USER;
-
-    return this.generateToken(
+    const {accessToken, refreshToken, expires} = await this.generateToken(
       {
         id: user.id,
-        roles: role,
+        name: user.firstName + " " + user.lastName
       },
       true,
     );
+
+    const expiresIn = new Date();
+    expiresIn.setDate(expires + 7)
+
+    await this.userService.updateUserToken(refreshToken, expiresIn, user.id)
+
+    return {
+      accessToken,
+      refreshToken,
+      expires
+    }
   }
 
-  async createNewRefreshToken(refreshToken: string) {
-    const payload: IToken = TokenHelper.verify(refreshToken, this.configService.get('REFRESH_TOKEN_SECRET'));
-    // if ((await this.IsStoredRefreshtoken(refreshToken, payload.id)) !== 1) {
-    //   ErrorHelper.UnauthorizedException('Invalid refresh token');
-    // }
-    // await this.redisService.srem(`user:${payload.id}:refreshTokens`, refreshToken);
-    return this.generateRefreshToken({ id: payload.id, roles: payload.roles });
-  }
 
   async register(createUserDto: CreateUserDto) {
     const token: string = await this.userService.registerUser(createUserDto);
@@ -116,13 +100,6 @@ export class AuthService {
 
     const body = await this.awsSesService.createTemplate({ email, link }, ETemplate.EMAIL_CONFIRM);
     return await this.awsSesService.sendEmail(createUserDto.email, ESubject.VERIFY_EMAIL, body);
-  }
-
-  async confirmRegister(token: string) {
-    const secret: string = this.configService.get<string>('TOKEN_SECRET');
-    const payload: IToken = TokenHelper.verify(token, secret);
-    await this.cacheService.checkUsedToken(`user:${payload.id}:registerTokens`, token);
-    return await this.userService.confirmRegister(payload);
   }
 
   async resetPassword(forgotPasswordDto: ForgotPasswordDto) {

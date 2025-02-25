@@ -12,9 +12,6 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { SERVER_PORT } from './environments';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { CustomLogger } from './shared/context/custom-logger';
-import { Logger } from 'nestjs-pino';
-import { ContextInterceptor } from './common/interceptors/context.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -44,9 +41,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
-  app.useGlobalInterceptors(new ContextInterceptor());
 
-  app.useLogger(new CustomLogger(app.get(Logger)));
   // Starts listening to shutdown hooks
   app.enableShutdownHooks();
 

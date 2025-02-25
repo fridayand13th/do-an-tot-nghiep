@@ -1,20 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { InjectConnection, InjectModel } from '@nestjs/sequelize';
-import { ChangePasswordDto, CreateUserDto, UpdateUserDto, UpdateUserStatusDto } from './dto/user.dto';
-import { Users } from 'src/models';
-import { col, fn, literal, Op, Sequelize } from 'sequelize';
-import { EncryptHelper } from 'src/helpers/encrypt.helper';
-import { ErrorHelper } from 'src/helpers/error.utils';
-import * as USER_MESSAGE from 'src/common/messages/user.message';
-import { ConfigService } from '@nestjs/config';
-import { TokenHelper } from 'src/helpers/token.helper';
-import { IToken } from 'src/interfaces/auth.interface';
-import { GetUserDto } from './dto/get-user.dto';
-import { getPagination } from 'src/utils/common';
-import { PaginatedResult } from 'src/interfaces/common.interface';
-import { TimeFilterDto } from 'src/common/dto/common.dto';
-import { buildStatisticQueryParams } from 'src/utils/statistic-query';
-import { addMissingValue, formatStatisticData } from 'src/utils/format-statistic-result';
+import { Injectable } from "@nestjs/common";
+import { InjectConnection, InjectModel } from "@nestjs/sequelize";
+import {
+  ChangePasswordDto,
+  CreateUserDto,
+  UpdateUserDto,
+  UpdateUserStatusDto,
+} from "./dto/user.dto";
+import { Users } from "src/models";
+import { Op, Sequelize } from "sequelize";
+import { EncryptHelper } from "src/helpers/encrypt.helper";
+import { ErrorHelper } from "src/helpers/error.utils";
+import * as USER_MESSAGE from "src/common/messages/user.message";
+import { ConfigService } from "@nestjs/config";
+import { TokenHelper } from "src/helpers/token.helper";
+import { IToken } from "src/interfaces/auth.interface";
+import { GetUserDto } from "./dto/get-user.dto";
+import { getPagination } from "src/utils/common";
+import { PaginatedResult } from "src/interfaces/common.interface";
+import { TimeFilterDto } from "src/common/dto/common.dto";
+import { buildStatisticQueryParams } from "src/utils/statistic-query";
+import { addMissingValue } from "src/utils/format-statistic-result";
 
 @Injectable()
 export class UsersService {
@@ -23,49 +28,27 @@ export class UsersService {
     private readonly userModel: typeof Users,
     private configService: ConfigService,
     @InjectConnection()
-    private readonly sequelize: Sequelize,
+    private readonly sequelize: Sequelize
   ) {}
 
   async registerUser(createUserDto: CreateUserDto): Promise<string> {
     const { email, password } = createUserDto;
 
-    const isEmailUsed: Boolean = await this.checkUserEmail(email);
+    await this.checkUserEmail(email);
 
-    if (!isEmailUsed) {
-      ErrorHelper.BadRequestException(USER_MESSAGE.USED_EMAIL);
-    }
     const hashedPassword = await EncryptHelper.hash(password, 10);
-    const user: Users = await this.userModel.create({ ...createUserDto, password: hashedPassword });
-    const secret = this.configService.get('TOKEN_SECRET');
-    const expiresIn = this.configService.get('TOKEN_EXPIRES_IN');
-    const { token: confirmToken } = TokenHelper.generate({ id: user.id }, secret, expiresIn);
-    return confirmToken;
-  }
-
-  async getAll(getUserDto: GetUserDto): Promise<PaginatedResult<Users>> {
-    const { email } = getUserDto;
-    const { offset, page, take } = getPagination(getUserDto);
-    const baseWhere: Record<string, any> = {};
-    if (email) {
-      baseWhere.email = { [Op.like]: `%${email}%` };
-    }
-
-    const { count, rows: inquiryHistory } = await this.userModel.findAndCountAll({
-      where: { ...baseWhere, isAdmin: false },
-      attributes: { exclude: ['password'] },
-      limit: take,
-      offset,
-      order: [['id', 'ASC']],
-      distinct: true,
+    const user: Users = await this.userModel.create({
+      ...createUserDto,
+      password: hashedPassword,
     });
-
-    return {
-      count,
-      totalPage: Math.ceil(count / take),
-      currentPage: page,
-      take,
-      items: inquiryHistory,
-    };
+    const secret = this.configService.get("TOKEN_SECRET");
+    const expiresIn = this.configService.get("TOKEN_EXPIRES_IN");
+    const { token: confirmToken } = TokenHelper.generate(
+      { id: user.id },
+      secret,
+      expiresIn
+    );
+    return confirmToken;
   }
 
   findById(id: number): Promise<Users> {
@@ -82,56 +65,30 @@ export class UsersService {
     return await this.userModel.findOne({
       where: {
         email: email,
-        isVerified: true,
       },
     });
   }
 
-  private async checkUserEmail(email: string): Promise<Boolean> {
+  private async checkUserEmail(email: string) {
     const user = await this.findByEmail(email);
 
     if (user) {
-      if (user.isVerified) {
-        return false;
-      }
-      await user.destroy();
-      return true;
-    }
-
-    return true;
-  }
-
-  async confirmRegister(payload: IToken) {
-    const transaction = await this.sequelize.transaction();
-    const { id } = payload;
-    const user: Users = await this.findById(id);
-    if (!user) {
-      ErrorHelper.BadRequestException(USER_MESSAGE.NOT_FOUND);
-    }
-    try {
-      await user.update(
-        {
-          isVerified: true,
-        },
-        {
-          transaction,
-        },
-      );
-      await transaction.commit();
-    } catch (error) {
-      await transaction.rollback();
-      throw new Error(`Registration confirmation failed`);
+      ErrorHelper.BadRequestException(USER_MESSAGE.USED_EMAIL);
     }
   }
 
   async forgotPassword(email: string) {
     const user: Users = await this.findByEmail(email);
-    if (!user || !user?.isVerified) {
+    if (!user) {
       ErrorHelper.BadRequestException(USER_MESSAGE.WRONG_EMAIL);
     }
-    const secret = this.configService.get('TOKEN_SECRET');
-    const expiresIn = this.configService.get('TOKEN_EXPIRES_IN');
-    const { token: confirmToken } = TokenHelper.generate({ id: user.id }, secret, expiresIn);
+    const secret = this.configService.get("TOKEN_SECRET");
+    const expiresIn = this.configService.get("TOKEN_EXPIRES_IN");
+    const { token: confirmToken } = TokenHelper.generate(
+      { id: user.id },
+      secret,
+      expiresIn
+    );
     return confirmToken;
   }
 
@@ -146,7 +103,7 @@ export class UsersService {
         where: {
           id: id,
         },
-      },
+      }
     );
   }
 
@@ -155,7 +112,10 @@ export class UsersService {
 
     const { oldPassword, newPassword } = changePasswordDto;
 
-    const isPasswordValid = await EncryptHelper.compare(oldPassword, user.password);
+    const isPasswordValid = await EncryptHelper.compare(
+      oldPassword,
+      user.password
+    );
 
     if (!isPasswordValid) {
       ErrorHelper.BadRequestException(USER_MESSAGE.WRONG_PASSWORD);
@@ -168,78 +128,47 @@ export class UsersService {
     return true;
   }
 
-  async editUser(updateUserDto: UpdateUserDto, avtUrl: string | null, userId: number): Promise<Users> {
+  async editUser(
+    updateUserDto: UpdateUserDto,
+    avtUrl: string | null,
+    userId: number
+  ): Promise<Users> {
     const user: Users = await this.findById(userId);
     const { isDeleteAvatar } = updateUserDto;
-    if (isDeleteAvatar == 'true') {
-      avtUrl = ' ';
+    if (isDeleteAvatar == "true") {
+      avtUrl = " ";
     }
     await user.update({
       ...updateUserDto,
       ...(avtUrl && { avtUrl }),
     });
     const updatedUser = user.get({ plain: true });
-    const fieldsToExclude = ['password', 'isAdmin', 'isVerified', 'deletedAt'];
+    const fieldsToExclude = ["password", "isAdmin", "isVerified", "deletedAt"];
     fieldsToExclude.forEach((field) => {
       delete updatedUser[field];
     });
     return updatedUser;
   }
 
-  async getUserStatistics(timeFilterDto: TimeFilterDto) {
-    const { year, month, day } = timeFilterDto;
-    const { attributes, group, where } = buildStatisticQueryParams(year, month, day);
-    attributes.push([Sequelize.fn('COUNT', Sequelize.col('id')), 'total']);
-    const users = await this.userModel.findAll({
-      attributes,
+  async findUserByRefreshToken(refreshToken: string) {
+    return this.userModel.findOne({
       where: {
-        ...where,
-        isVerified: true,
-      },
-      group,
-      raw: true,
-    });
-    const results = addMissingValue(users, month, day);
-    return {
-      xName: '시간',
-      yName: '수량',
-      data: [
-        {
-          label: '사용자',
-          name: '사용자',
-          values: results,
+        refresToken: refreshToken,
+        refreshTokenExpireDate: {
+          [Op.gte]: new Date(),
         },
-      ],
-    };
+      },
+    });
   }
 
-  async updateUserStatus(updateUserStatusDto: UpdateUserStatusDto, userId: number) {
+  async updateUserToken(refreshToken: string, expiresIn: Date, id: number) {
     await this.userModel.update(
-      {
-        isVerified: updateUserStatusDto.status,
-      },
+      { refresToken: refreshToken, refreshTokenExpireDate: expiresIn },
       {
         where: {
-          id: userId,
+          id,
         },
-      },
+      }
     );
-  }
-
-  async getTotalUser() {
-    const result = await this.userModel.findOne({
-      attributes: [
-        [Sequelize.cast(Sequelize.fn('COUNT', Sequelize.col('id')), 'INTEGER'), 'number'],
-        [Sequelize.fn('MIN', Sequelize.col('created_at')), 'time'],
-      ],
-      where: {
-        isVerified: true,
-      },
-    });
-
-    return {
-      label: '총 사용자 수',
-      data: result,
-    };
   }
 }

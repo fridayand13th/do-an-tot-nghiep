@@ -14,10 +14,9 @@ export class AuthController {
   @Post('/refresh-access-token')
   refreshToken(
     @Query('refreshToken') refreshToken: string,
-    //@Query('accessToken') accessToken: string
   ) {
     return this.authService.refreshAccessToken(
-      refreshToken, //accessToken
+      refreshToken, 
     );
   }
 
@@ -31,10 +30,6 @@ export class AuthController {
     return { accessToken, refreshToken };
   }
 
-  @Post('/generate-refresh-token')
-  generateRefreshToken(@Query('refreshToken') refreshToken: string) {
-    return this.authService.createNewRefreshToken(refreshToken);
-  }
 
   @Post('/register')
   @ApiOperation({ summary: 'Register' })
@@ -44,13 +39,6 @@ export class AuthController {
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input' })
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
-  }
-
-  @Get('/register/confirm')
-  @ApiOperation({ summary: 'Register confirmaion' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error.' })
-  confirmRegister(@Query('token') token: string) {
-    return this.authService.confirmRegister(token);
   }
 
   @Post('/forgot-password')

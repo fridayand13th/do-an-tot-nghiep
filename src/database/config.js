@@ -16,12 +16,4 @@ module.exports = {
     password,
     database
   },
-  production: {
-    dialect: 'postgres',
-    host,
-    port,
-    username,
-    password,
-    database: 'beeeye-prod',
-  },
 };
