@@ -31,7 +31,7 @@ export class UsersService {
     private readonly sequelize: Sequelize
   ) {}
 
-  async registerUser(createUserDto: CreateUserDto): Promise<string> {
+  async registerUser(createUserDto: CreateUserDto) {
     const { email, password } = createUserDto;
 
     await this.checkUserEmail(email);
@@ -41,14 +41,11 @@ export class UsersService {
       ...createUserDto,
       password: hashedPassword,
     });
-    const secret = this.configService.get("TOKEN_SECRET");
-    const expiresIn = this.configService.get("TOKEN_EXPIRES_IN");
-    const { token: confirmToken } = TokenHelper.generate(
-      { id: user.id },
-      secret,
-      expiresIn
-    );
-    return confirmToken;
+
+    return {
+      id: user.id,
+      email: user.email,
+    };
   }
 
   findById(id: number): Promise<Users> {
@@ -153,7 +150,7 @@ export class UsersService {
   async findUserByRefreshToken(refreshToken: string) {
     return this.userModel.findOne({
       where: {
-        refresToken: refreshToken,
+        refreshToken: refreshToken,
         refreshTokenExpireDate: {
           [Op.gte]: new Date(),
         },
@@ -163,7 +160,7 @@ export class UsersService {
 
   async updateUserToken(refreshToken: string, expiresIn: Date, id: number) {
     await this.userModel.update(
-      { refresToken: refreshToken, refreshTokenExpireDate: expiresIn },
+      { refreshToken: refreshToken, refreshTokenExpireDate: expiresIn },
       {
         where: {
           id,

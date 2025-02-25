@@ -1,8 +1,9 @@
-import { Table, Column, DataType, HasMany } from 'sequelize-typescript';
-import { BaseModel } from './base.model';
+import { Table, Column, DataType, HasMany } from "sequelize-typescript";
+import { BaseModel } from "./base.model";
+import { Tasks } from "./tasks.model";
 
 @Table({
-  tableName: 'users',
+  tableName: "users",
   underscored: true,
 })
 export class Users extends BaseModel<Users> {
@@ -26,9 +27,9 @@ export class Users extends BaseModel<Users> {
 
   @Column({
     type: DataType.STRING(255),
-    allowNull: false,
+    allowNull: true,
   })
-  refresToken: string;
+  refreshToken: string;
 
   @Column({
     type: DataType.STRING(100),
@@ -38,8 +39,10 @@ export class Users extends BaseModel<Users> {
 
   @Column({
     type: DataType.DATE,
-    allowNull: false,
+    allowNull: true,
   })
   refreshTokenExpireDate: Date;
 
+  @HasMany(() => Tasks)
+  tasks: Tasks[];
 }

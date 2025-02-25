@@ -19,8 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:create": "npx sequelize-cli migration:generate --name",
-    "migration:run": "npx sequelize-cli db:migrate"
+    "migration:create": "npx sequelize-cli migration:generate --name --config src/database/config.js",
+    "migration:run": "npx sequelize-cli db:migrate --config src/database/config.js"
   },
   "resolutions": {
     "@types/lodash": "4.14.168"
