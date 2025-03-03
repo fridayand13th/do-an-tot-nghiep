@@ -1,18 +1,21 @@
-import { registerDecorator, ValidationOptions } from 'class-validator';
+import { registerDecorator, ValidationOptions } from "class-validator";
 
-export function IsMatchPattern(pattern: string, validationOptions?: ValidationOptions) {
+export function IsMatchPattern(
+  pattern: string,
+  validationOptions?: ValidationOptions
+) {
   return function (object: Record<string, any>, propertyName: string) {
     registerDecorator({
-      name: 'isValidPattern',
+      name: "isValidPattern",
       target: object.constructor,
       propertyName: propertyName,
       options: {
-        message: `${propertyName} is invalid`,
+        message: `${propertyName} không hợp lệ`,
         ...validationOptions,
       },
       validator: {
         validate(value: string) {
-          return typeof value === 'string' && new RegExp(pattern).test(value);
+          return typeof value === "string" && new RegExp(pattern).test(value);
         },
       },
     });

@@ -53,6 +53,7 @@
     "morgan": "^1.10.0",
     "nestjs-pino": "^4.1.0",
     "node-cache": "^5.1.2",
+    "nodemailer": "^6.10.0",
     "pg": "^8.7.1",
     "pino-http": "^10.3.0",
     "pino-multi-stream": "^6.0.0",

@@ -3,11 +3,10 @@ import { ConfigModule } from "@nestjs/config";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { UsersModule } from "../users/users.module";
-import { AwsSesModule } from "../aws-ses/aws-ses.module";
-import { CacheModule } from "src/shared/cache/cache.module";
+import { MailModule } from "../mail/mail.module";
 
 @Module({
-  imports: [UsersModule, AwsSesModule, CacheModule],
+  imports: [UsersModule, MailModule],
   controllers: [AuthController],
   providers: [AuthService],
   exports: [AuthService],

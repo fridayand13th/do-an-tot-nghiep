@@ -1,4 +1,4 @@
-import { Body, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ErrorHelper } from "src/helpers/error.utils";
 import { TokenHelper } from "src/helpers/token.helper";
@@ -7,24 +7,20 @@ import { LoginDto } from "./dto/auth.dto";
 import { UsersService } from "../users/users.service";
 import * as USER_MESSAGE from "src/common/messages/user.message";
 import { EncryptHelper } from "src/helpers/encrypt.helper";
-import { ERoles } from "src/enums/base.enum";
-import { CreateUserDto } from "../users/dto/user.dto";
-import { AwsSesService } from "../aws-ses/aws-ses.service";
+import { MailService } from "../mail/mail.service";
 import { Users } from "src/models";
-import { ESubject, ETemplate } from "src/enums/email.enum";
 import { ForgotPasswordDto, ResetPasswordDto } from "./dto/forgot-password.dto";
-import { CacheService } from "src/shared/cache/cache.service";
 import { INVALID_TOKEN } from "src/common/messages/common.message";
 import { v4 as uuidv4 } from "uuid";
 import { SEVEN_DAYS } from "src/constants/base.constant";
+import { EmailTemplateNames } from "../mail/mail.constants";
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
     private userService: UsersService,
-    private awsSesService: AwsSesService,
-    private cacheService: CacheService
+    private MailService: MailService
   ) {}
 
   async refreshAccessToken(refreshToken: string) {
@@ -92,8 +88,6 @@ export class AuthService {
 
     const expiresIn = new Date((expires + SEVEN_DAYS) * 1000);
 
-    console.log(expiresIn);
-
     await this.userService.updateUserToken(refreshToken, expiresIn, user.id);
 
     return {
@@ -110,15 +104,20 @@ export class AuthService {
       "VERIFY_RESET_PASSWORD_URL"
     );
     const link: string = `${URL}${token}`;
-    const body = await this.awsSesService.createTemplate(
-      { email, link },
-      ETemplate.EMAIL_RESET_PASSWORD
-    );
-    return await this.awsSesService.sendEmail(
+    const response = await this.MailService.sendMail(
       email,
-      ESubject.RESET_PASSWORD,
-      body
+      EmailTemplateNames.RESET_PASSWORD,
+      {
+        email: email || "",
+        link: link,
+        supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
+        duration:
+          parseInt(
+            this.configService.get<string>("RESET_TOKEN_EXPIRES_IN", "900")
+          ) / 60,
+      }
     );
+    return response.response;
   }
 
   async verifyResetPassword(token: string, resetPasswordDto: ResetPasswordDto) {
@@ -126,15 +125,5 @@ export class AuthService {
     const secret: string = this.configService.get<string>("TOKEN_SECRET");
     const payload: IToken = TokenHelper.verify(token, secret);
     return await this.userService.verifyForgotPassword(payload, password);
-  }
-
-  async verifyToken(token: string) {
-    const secret: string = this.configService.get<string>("TOKEN_SECRET");
-    const payload: IToken = await TokenHelper.verify(token, secret);
-    await this.cacheService.checkUsedToken(
-      `user:${payload.id}:resetPasswordTokens`,
-      token
-    );
-    return true;
   }
 }

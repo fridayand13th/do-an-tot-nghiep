@@ -1,6 +1,8 @@
-export const VALIDATE_DATE_MESSAGE = '시작 날짜는 종료 날짜보다 빨라야 합니다';
-export const EMPTY_MESSAGE = '검색된 기록이 없습니다';
-export const SERVER_ERROR_MESSAGE = '내부 오류';
-export const DUPLICATE_RECORD = '데이터베이스에 기록이 존재합니다';
-export const UNAUTHORIZED = '이 기능을 사용할 수 있는 권한이 없습니다';
-export const INVALID_TOKEN = 'Invalid token';
+export const VALIDATE_DATE_MESSAGE =
+  "Thời gian bắt đầu phải nhỏ hơn thời gian kết thúc";
+export const EMPTY_MESSAGE = "Không có kết quả nào được tìm thấy";
+export const SERVER_ERROR_MESSAGE = "Có lỗi xảy ra, vui lòng thử lại sau";
+export const DUPLICATE_RECORD = "Dữ liệu đã tồn tại";
+export const UNAUTHORIZED = "Không có quyền truy cập";
+export const INVALID_TOKEN = "Token không hợp lệ";
+export const INVALID_USER_NAME = "Tên người dùng không hợp lệ";

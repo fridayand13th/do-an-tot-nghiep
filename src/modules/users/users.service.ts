@@ -4,7 +4,6 @@ import {
   ChangePasswordDto,
   CreateUserDto,
   UpdateUserDto,
-  UpdateUserStatusDto,
 } from "./dto/user.dto";
 import { Users } from "src/models";
 import { Op, Sequelize } from "sequelize";
@@ -14,12 +13,6 @@ import * as USER_MESSAGE from "src/common/messages/user.message";
 import { ConfigService } from "@nestjs/config";
 import { TokenHelper } from "src/helpers/token.helper";
 import { IToken } from "src/interfaces/auth.interface";
-import { GetUserDto } from "./dto/get-user.dto";
-import { getPagination } from "src/utils/common";
-import { PaginatedResult } from "src/interfaces/common.interface";
-import { TimeFilterDto } from "src/common/dto/common.dto";
-import { buildStatisticQueryParams } from "src/utils/statistic-query";
-import { addMissingValue } from "src/utils/format-statistic-result";
 
 @Injectable()
 export class UsersService {
@@ -127,24 +120,15 @@ export class UsersService {
 
   async editUser(
     updateUserDto: UpdateUserDto,
-    avtUrl: string | null,
     userId: number
-  ): Promise<Users> {
+  ): Promise<Boolean> {
     const user: Users = await this.findById(userId);
-    const { isDeleteAvatar } = updateUserDto;
-    if (isDeleteAvatar == "true") {
-      avtUrl = " ";
-    }
+
     await user.update({
       ...updateUserDto,
-      ...(avtUrl && { avtUrl }),
     });
-    const updatedUser = user.get({ plain: true });
-    const fieldsToExclude = ["password", "isAdmin", "isVerified", "deletedAt"];
-    fieldsToExclude.forEach((field) => {
-      delete updatedUser[field];
-    });
-    return updatedUser;
+
+    return true;
   }
 
   async findUserByRefreshToken(refreshToken: string) {
@@ -167,5 +151,14 @@ export class UsersService {
         },
       }
     );
+  }
+
+  async getUserInfo(userId: number) {
+    return this.userModel.findOne({
+      where: {
+        id: userId,
+      },
+      attributes: ["id", "firstName", "lastName", "email"],
+    });
   }
 }
