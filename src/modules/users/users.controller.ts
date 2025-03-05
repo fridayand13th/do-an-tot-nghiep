@@ -27,7 +27,6 @@ import { ERoles } from "src/enums/base.enum";
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Roles(ERoles.USER)
   @UseGuards(AuthRoleGuard)
   @ApiBearerAuth()
   @Post("/change-password")
