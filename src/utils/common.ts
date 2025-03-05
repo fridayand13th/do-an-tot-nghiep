@@ -9,7 +9,10 @@ export interface PaginationResult {
   offset: number;
 }
 
-export function getPagination({ page = 1, take = 10 }: PaginationOptions): PaginationResult {
+export function getPagination({
+  page = 1,
+  take = 10,
+}: PaginationOptions): PaginationResult {
   page = Number(page);
   take = Number(take);
 
@@ -20,4 +23,8 @@ export function getPagination({ page = 1, take = 10 }: PaginationOptions): Pagin
     take,
     offset,
   };
+}
+
+export function clearJsonString(jsonString: string): string {
+  return jsonString.replace(/^```json\s*|\s*```[\s\n]*$/g, "");
 }

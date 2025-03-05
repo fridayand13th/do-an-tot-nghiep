@@ -44,6 +44,12 @@ export class Tasks extends BaseModel<Tasks> {
   })
   endDate: Date;
 
+  @Column({
+    type: DataType.NUMBER,
+    allowNull: false,
+  })
+  toDoDay: number;
+
   @BelongsTo(() => Users)
   user: Users;
 }
