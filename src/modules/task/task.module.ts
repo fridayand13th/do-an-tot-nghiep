@@ -4,10 +4,11 @@ import { TaskController } from "./task.controller";
 import { Tasks } from "src/models";
 import { SequelizeModule } from "@nestjs/sequelize";
 import { UsersModule } from "../users/users.module";
+import { GeminiService } from "src/shared/gemini/gemini.service";
 
 @Module({
   imports: [SequelizeModule.forFeature([Tasks]), UsersModule],
-  providers: [TaskService],
+  providers: [TaskService, GeminiService],
   controllers: [TaskController],
   exports: [TaskService],
 })

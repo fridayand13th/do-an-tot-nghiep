@@ -24,6 +24,10 @@ module.exports = {
         type: Sequelize.STRING(255),
         allowNull: false,
       },
+      todo_day: {
+        type: Sequelize.NUMBER,
+        allowNull: false,
+      },
       status: {
         type: Sequelize.STRING(100),
         allowNull: false,
