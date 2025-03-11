@@ -12,3 +12,10 @@ export enum SearchTaskStatus {
   DONE = "Đã xử lý",
   CANCEL = "Hủy",
 }
+
+export enum TaskAction {
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
+  FIND = "find",
+}

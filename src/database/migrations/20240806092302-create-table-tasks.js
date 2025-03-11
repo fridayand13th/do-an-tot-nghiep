@@ -31,7 +31,6 @@ module.exports = {
       status: {
         type: Sequelize.STRING(100),
         allowNull: false,
-        unique: true,
       },
       end_date: {
         type: Sequelize.DATE,
