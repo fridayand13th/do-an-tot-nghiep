@@ -43,7 +43,11 @@ export class SearchTasksDto extends PaginateDto {
   @IsOptional()
   name: string;
 
-  @ApiProperty({ required: false, example: SearchTaskStatus.ALL })
+  @ApiProperty({
+    required: false,
+    example: SearchTaskStatus.ALL,
+    enum: SearchTaskStatus,
+  })
   @IsOptional()
   @IsEnum(SearchTaskStatus)
   status: SearchTaskStatus;

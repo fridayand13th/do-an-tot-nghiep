@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpStatus,
   Request,
+  Query,
 } from "@nestjs/common";
 import { TaskService } from "./task.service";
 import {
@@ -21,6 +22,7 @@ import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from "@nestjs/swagger";
@@ -87,7 +89,7 @@ export class TaskController {
     return this.taskService.deleteTask(id);
   }
 
-  @Get(":id")
+  @Get(":id/detail")
   @ApiOperation({ summary: "Lấy thông tin công việc" })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -127,17 +129,16 @@ export class TaskController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: "Lỗi server.",
   })
-  @ApiBody({ type: SearchTasksDto })
-  searchTask(@Request() req, @Body() searchTasksDto: SearchTasksDto) {
+  searchTask(@Request() req, @Query() searchTasksDto: SearchTasksDto) {
     const userId: number = req.user.id;
     return this.taskService.searchTask(searchTasksDto, userId);
   }
 
-  @Post("/create-by-prompt")
-  @ApiOperation({ summary: "Tạo công việc bằng Gemini" })
+  @Post("/gemini-interact")
+  @ApiOperation({ summary: "CRUD task bằng Gemini" })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: "Tạo công việc thành công.",
+    description: "Thành công.",
   })
   @ApiResponse({
     status: HttpStatus.BAD_REQUEST,
@@ -148,8 +149,8 @@ export class TaskController {
     description: "Lỗi server.",
   })
   @ApiBody({ type: CreateTaskByGeminiDto })
-  createByPrompt(@Body() prompt: CreateTaskByGeminiDto, @Request() req) {
+  test(@Body() prompt: CreateTaskByGeminiDto, @Request() req) {
     const userId: number = req.user.id;
-    return this.taskService.createTaskByGemini(prompt, userId);
+    return this.taskService.CRUDTaskByGemini(prompt, userId);
   }
 }
