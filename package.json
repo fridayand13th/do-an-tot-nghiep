@@ -69,7 +69,7 @@
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",
-    "@nestjs/schedule": "^4.1.1",
+    "@nestjs/schedule": "4.1.1",
     "@nestjs/schematics": "^8.0.0",
     "@nestjs/testing": "^8.0.0",
     "@types/cookie-parser": "^1.4.2",
