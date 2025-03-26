@@ -5,4 +5,8 @@ export const EmailTemplateNames: Record<string, EmailTemplate> = {
     subject: "Yêu cầu đặt lại mật khẩu",
     template: "email-reset-password.template",
   },
+  REMINDER: {
+    subject: "Nhắc nhở hoàn thành công việc",
+    template: "reminder-email.template",
+  },
 };

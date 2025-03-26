@@ -5,14 +5,14 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectModel } from "@nestjs/sequelize";
-import { Tasks } from "src/models";
+import { Tasks, Users } from "src/models";
 import {
   CreateTaskByGeminiDto,
   CreateTaskDto,
   GetAllTasksDto,
   SearchTasksDto,
 } from "./dto/task.dto";
-import { where } from "sequelize";
+import { Sequelize, where } from "sequelize";
 import { Op } from "sequelize";
 import { SearchTaskStatus, TaskAction, TaskStatus } from "src/enums/task.enum";
 import { buildDateFilter } from "src/utils/date";
@@ -27,6 +27,9 @@ import {
 } from "src/common/messages/task.message";
 import { INVALID_PROMPT } from "src/common/messages/common.message";
 import { UNEXPECTED_PROMPT } from "src/constants/base.constant";
+import { Cron, CronExpression, Interval, Timeout } from "@nestjs/schedule";
+import { MailService } from "../mail/mail.service";
+import { EmailTemplateNames } from "../mail/mail.constants";
 
 @Injectable()
 export class TaskService {
@@ -34,7 +37,8 @@ export class TaskService {
     @InjectModel(Tasks)
     private readonly taskModel: typeof Tasks,
     private configService: ConfigService,
-    private readonly geminiService: GeminiService
+    private readonly geminiService: GeminiService,
+    private MailService: MailService
   ) {}
 
   async createTask(createTaskDto: CreateTaskDto, userId: number) {
@@ -272,5 +276,38 @@ export class TaskService {
       console.error("Error in Prompt:", error);
       throw new InternalServerErrorException("Failed to process task request");
     }
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_10PM)
+  private async cronjobReminder() {
+    const now = new Date();
+    const start_of_day = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    );
+
+    const tasks = await this.taskModel.findAll({
+      attributes: [
+        "userId",
+        [Sequelize.fn("COUNT", Sequelize.col("Tasks.id")), "taskCount"],
+      ],
+      where: {
+        status: TaskStatus.OPEN,
+        endDate: {
+          [Op.gte]: start_of_day,
+          [Op.lt]: new Date(new Date().setHours(23, 59, 59, 999)),
+        },
+      },
+      include: [{ model: Users, attributes: ["email"] }],
+      group: ["userId", "user.id"],
+      raw: true,
+      nest: true,
+    });
+
+    tasks.forEach((task) => {
+      this.MailService.sendMail(task.user.email, EmailTemplateNames.REMINDER, {
+        email: task.user.email || "",
+        supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
+      });
+    });
   }
 }

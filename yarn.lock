@@ -1734,7 +1734,7 @@
     multer "1.4.4"
     tslib "2.3.1"
 
-"@nestjs/schedule@^4.1.1":
+"@nestjs/schedule@4.1.1":
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/@nestjs/schedule/-/schedule-4.1.1.tgz#a730cff250ad5db78fe6a1bfc7f12a30856e48df"
   integrity sha512-VxAnCiU4HP0wWw8IdWAVfsGC/FGjyToNjjUtXDEQL6oj+w/N5QDd2VT9k6d7Jbr8PlZuBZNdWtDKSkH5bZ+RXQ==
