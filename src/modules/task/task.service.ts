@@ -157,8 +157,6 @@ export class TaskService {
 
       const response = await this.geminiService.generateResponse(prompt);
 
-      console.log(response);
-
       const clearResponse = clearJsonString(response);
       const jsonRes = JSON.parse(clearResponse);
 
@@ -186,7 +184,6 @@ export class TaskService {
 
       const taskFromDb = await this.findTaskByDate(startDate, endDate);
 
-      console.log(response, jsonRes, toDoDay);
       if (action === TaskAction.CREATE) {
         if (taskFromDb) {
           throw new BadRequestException(EXIST_TASK_TIME);
