@@ -38,6 +38,12 @@ export class Users extends BaseModel<Users> {
   email!: string;
 
   @Column({
+    type: DataType.STRING(100),
+    allowNull: false,
+  })
+  hobby!: string;
+
+  @Column({
     type: DataType.DATE,
     allowNull: true,
   })

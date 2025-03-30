@@ -71,8 +71,13 @@ export class TaskController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: "Lỗi server.",
   })
-  update(@Param("id") id: number, @Body() createTaskDto: CreateTaskDto) {
-    return this.taskService.updateTask(id, createTaskDto);
+  update(
+    @Param("id") id: number,
+    @Body() createTaskDto: CreateTaskDto,
+    @Request() req
+  ) {
+    const userId: number = req.user.id;
+    return this.taskService.updateTask(id, createTaskDto, userId);
   }
 
   @Delete(":id")
@@ -85,8 +90,9 @@ export class TaskController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: "Lỗi server.",
   })
-  delete(@Param("id") id: number) {
-    return this.taskService.deleteTask(id);
+  delete(@Param("id") id: number, @Request() req) {
+    const userId: number = req.user.id;
+    return this.taskService.deleteTask(id, userId);
   }
 
   @Get(":id/detail")
@@ -99,8 +105,9 @@ export class TaskController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: "Lỗi server.",
   })
-  getTaskById(@Param("id") id: number) {
-    return this.taskService.getTaskById(id);
+  getTaskById(@Param("id") id: number, @Request() req) {
+    const userId: number = req.user.id;
+    return this.taskService.getTaskById(id, userId);
   }
 
   @Get()
@@ -113,8 +120,7 @@ export class TaskController {
     status: HttpStatus.INTERNAL_SERVER_ERROR,
     description: "Lỗi server.",
   })
-  @ApiBody({ type: GetAllTasksDto })
-  getAllTasks(@Request() req, @Body() getAllTasksDto: GetAllTasksDto) {
+  getAllTasks(@Request() req, @Query() getAllTasksDto: GetAllTasksDto) {
     const userId: number = req.user.id;
     return this.taskService.getAllTasks(getAllTasksDto, userId);
   }

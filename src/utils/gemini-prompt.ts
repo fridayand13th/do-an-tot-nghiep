@@ -1,6 +1,6 @@
 export async function readPrompt(prompt: string): Promise<string> {
   return `Hãy tách thời gian, công việc(Các hoạt động hằng ngày, ...) và hành động(thường là: thêm, sửa, xóa, tìm) khỏi câu sau: "${prompt}".
-  Nếu không có ngày tháng năm cụ thể thì hãy tạo ngày tháng năm dựa trên thời gian được cung cấp và thời gian hiện tại ${new Date()}
+  Nếu không có ngày tháng năm cụ thể thì hãy tạo ngày tháng năm dựa trên thời gian được cung cấp và thời gian hiện tại ${new Date()}. Lưu ý tôi ở Việt Nam và sử dụng múi giờ GMT+7.
   Nếu hành động là "Tạo" hoặc các từ đồng nghĩa thì trả về là "create", 
   nếu hành động là "Sửa" hoặc các từ đồng nghĩa thì trả về là "update", 
   nếu hành động là "Xóa" hoặc các từ đồng nghĩa thì trả về là "delete".
@@ -29,4 +29,14 @@ export async function readPrompt(prompt: string): Promise<string> {
 
   Nếu không có bất kỳ phần tử phù hợp(ngày tháng, tên công việc, hành động) hãy trả về {response: 0}
   `;
+}
+
+export function suggestionPrompt(name: string, hobby: string, taskList: any) {
+  return `Giả sử bạn là một chương trình lên lịch công việc. Hãy làm theo yêu cầu sau:
+
+taskList = ${JSON.stringify(taskList)}
+
+Dựa vào danh sách trên hãy đề xuất cho tôi lịch ${name} vào lúc phù hợp(không trùng) với thời gian ở danh sách và tôi thích ${hobby}. Hãy trả về dưới dạng sau và không cần giải thích gì thêm
+
+{suggestName:"", startDate:"", endDate:""}`;
 }
