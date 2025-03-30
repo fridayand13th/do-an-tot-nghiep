@@ -8,3 +8,4 @@ export const INVALID_TOKEN = "Token không hợp lệ";
 export const INVALID_USER_NAME = "Tên người dùng không hợp lệ";
 export const INVALID_PROMPT =
   "Mình là trợ lý ảo giúp bạn quản lý công việc, nhưng yêu cầu này có vẻ nằm ngoài khả năng của mình. Rất tiếc nếu điều này gây bất tiện cho bạn!";
+export const INVALID_HOBBY = "Sở thích không hợp lệ";

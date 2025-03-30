@@ -26,6 +26,10 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
+      hobby: {
+        type: Sequelize.STRING(100),
+        allowNull: false,
+      },
       refresh_token: {
         type: Sequelize.STRING(100),
         allowNull: true,
