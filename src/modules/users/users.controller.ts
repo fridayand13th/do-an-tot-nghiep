@@ -49,7 +49,6 @@ export class UsersController {
     return this.usersService.changePassword(userId, changePasswordDto);
   }
 
-  @Roles(ERoles.USER, ERoles.ADMIN)
   @UseGuards(AuthRoleGuard)
   @ApiBearerAuth()
   @Get("/profile")
@@ -84,7 +83,6 @@ export class UsersController {
     return await this.usersService.getUserInfo(userId);
   }
 
-  @Roles(ERoles.USER)
   @UseGuards(AuthRoleGuard)
   @ApiBearerAuth()
   @Put("/profile")

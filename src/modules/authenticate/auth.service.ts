@@ -14,25 +14,25 @@ import { INVALID_TOKEN } from "src/common/messages/common.message";
 import { v4 as uuidv4 } from "uuid";
 import { SEVEN_DAYS } from "src/constants/base.constant";
 import { EmailTemplateNames } from "../mail/mail.constants";
+import { CreateUserDto } from "../users/dto/user.dto";
+import { CacheService } from "src/shared/cache/cache.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private configService: ConfigService,
     private userService: UsersService,
-    private MailService: MailService
+    private MailService: MailService,
+    private cacheService: CacheService
   ) {}
 
   async refreshAccessToken(refreshToken: string) {
-    const user = await this.userService.findUserByRefreshToken(refreshToken);
-    if (!user) {
-      ErrorHelper.UnauthorizedException(INVALID_TOKEN);
-    }
-
-    return this.generateToken(
-      { id: user.id, name: user.firstName + " " + user.lastName },
-      false
+    const payload: IToken = TokenHelper.verify(
+      refreshToken,
+      this.configService.get("REFRESH_TOKEN_SECRET")
     );
+
+    return this.generateToken({ id: payload.id, name: payload.name }, false);
   }
 
   async generateToken(payload: IToken, flag: boolean) {
@@ -50,7 +50,7 @@ export class AuthService {
     let refreshToken: string | undefined;
 
     if (flag) {
-      refreshToken = uuidv4();
+      refreshToken = await this.generateRefreshToken(payload);
     }
 
     return {
@@ -58,6 +58,21 @@ export class AuthService {
       expires,
       refreshToken,
     };
+  }
+
+  private async generateRefreshToken(payload: IToken): Promise<string> {
+    const secret: string = this.configService.get<string>(
+      "REFRESH_TOKEN_SECRET"
+    );
+    const expiresIn: string = this.configService.get<string>(
+      "REFRESH_TOKEN_EXPIRES_IN"
+    );
+    const { token: refreshToken, expires } = TokenHelper.generate(
+      payload,
+      secret,
+      expiresIn
+    );
+    return refreshToken;
   }
 
   async login(params: LoginDto) {
@@ -78,23 +93,21 @@ export class AuthService {
       ErrorHelper.BadRequestException(USER_MESSAGE.WRONG_PASSWORD);
     }
 
-    const { accessToken, refreshToken, expires } = await this.generateToken(
+    return this.generateToken(
       {
         id: user.id,
         name: user.firstName + " " + user.lastName,
       },
       true
     );
+  }
 
-    const expiresIn = new Date((expires + SEVEN_DAYS) * 1000);
-
-    await this.userService.updateUserToken(refreshToken, expiresIn, user.id);
-
-    return {
-      accessToken,
+  async createNewRefreshToken(refreshToken: string) {
+    const payload: IToken = TokenHelper.verify(
       refreshToken,
-      expires,
-    };
+      this.configService.get("REFRESH_TOKEN_SECRET")
+    );
+    return this.generateRefreshToken({ id: payload.id, name: payload.name });
   }
 
   async resetPassword(forgotPasswordDto: ForgotPasswordDto) {
@@ -125,5 +138,15 @@ export class AuthService {
     const secret: string = this.configService.get<string>("TOKEN_SECRET");
     const payload: IToken = TokenHelper.verify(token, secret);
     return await this.userService.verifyForgotPassword(payload, password);
+  }
+
+  async verifyToken(token: string) {
+    const secret: string = this.configService.get<string>("TOKEN_SECRET");
+    const payload: IToken = await TokenHelper.verify(token, secret);
+    await this.cacheService.checkUsedToken(
+      `user:${payload.id}:resetPasswordTokens`,
+      token
+    );
+    return true;
   }
 }

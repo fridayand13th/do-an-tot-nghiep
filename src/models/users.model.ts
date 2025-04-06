@@ -26,12 +26,6 @@ export class Users extends BaseModel<Users> {
   password!: string;
 
   @Column({
-    type: DataType.STRING(255),
-    allowNull: true,
-  })
-  refreshToken: string;
-
-  @Column({
     type: DataType.STRING(100),
     allowNull: false,
   })
@@ -42,12 +36,6 @@ export class Users extends BaseModel<Users> {
     allowNull: false,
   })
   hobby!: string;
-
-  @Column({
-    type: DataType.DATE,
-    allowNull: true,
-  })
-  refreshTokenExpireDate: Date;
 
   @HasMany(() => Tasks)
   tasks: Tasks[];

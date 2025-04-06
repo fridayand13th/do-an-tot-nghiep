@@ -131,28 +131,6 @@ export class UsersService {
     return true;
   }
 
-  async findUserByRefreshToken(refreshToken: string) {
-    return this.userModel.findOne({
-      where: {
-        refreshToken: refreshToken,
-        refreshTokenExpireDate: {
-          [Op.gte]: new Date(),
-        },
-      },
-    });
-  }
-
-  async updateUserToken(refreshToken: string, expiresIn: Date, id: number) {
-    await this.userModel.update(
-      { refreshToken: refreshToken, refreshTokenExpireDate: expiresIn },
-      {
-        where: {
-          id,
-        },
-      }
-    );
-  }
-
   async getUserInfo(userId: number) {
     return this.userModel.findOne({
       where: {
