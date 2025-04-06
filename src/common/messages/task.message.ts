@@ -8,3 +8,6 @@ export const MISSING_TASK_DATA =
 
 export const DELETE_TASK =
   "Vui lòng hãy xóa công việc bạn muốn bằng cách trực tiếp";
+
+export const MISSING_CREATE_TASK_DATA =
+  "Xin hãy cung cấp đủ thông tin về công việc bạn muốn tạo như tên, thời gian bắt đầu, thời gian kết thúc";

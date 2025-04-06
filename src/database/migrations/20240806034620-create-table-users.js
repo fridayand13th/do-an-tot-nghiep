@@ -26,14 +26,9 @@ module.exports = {
         allowNull: false,
         unique: true,
       },
-      refresh_token: {
+      hobby: {
         type: Sequelize.STRING(100),
-        allowNull: true,
-        unique: true,
-      },
-      refresh_token_expire_date: {
-        type: Sequelize.DATE,
-        allowNull: true,
+        allowNull: false,
       },
       created_at: {
         type: Sequelize.DATE,

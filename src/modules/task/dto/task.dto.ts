@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsNotEmpty, IsOptional, MaxLength } from "class-validator";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
 import { Op } from "sequelize";
 import { PaginateDto } from "src/common/dto/common.dto";
 import {
@@ -28,12 +34,14 @@ export class CreateTaskDto {
   endDate: string;
 }
 
-export class GetAllTasksDto {
+export class GetAllTasksDto extends PaginateDto {
   @ApiProperty({ required: true, example: "2025-01-01" })
+  @IsString()
   @IsNotEmpty({ message: INVALID_START_DATE })
   startDate: string;
 
   @ApiProperty({ required: true, example: "2025-03-01" })
+  @IsString()
   @IsNotEmpty({ message: INVALID_END_DATE })
   endDate: string;
 }

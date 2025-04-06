@@ -29,6 +29,11 @@ export class AuthController {
     return this.authService.refreshAccessToken(refreshToken);
   }
 
+  @Post("/generate-refresh-token")
+  generateRefreshToken(@Query("refreshToken") refreshToken: string) {
+    return this.authService.createNewRefreshToken(refreshToken);
+  }
+
   @Post("/login")
   @ApiOperation({ summary: "Đăng nhập" })
   @ApiBody({ type: LoginDto })
@@ -95,6 +100,17 @@ export class AuthController {
     @Query("token") token: string,
     @Body() resetPasswordDto: ResetPasswordDto
   ) {
+    console.log("token", token);
     return this.authService.verifyResetPassword(token, resetPasswordDto);
+  }
+
+  @Get("/forgot-password/verify-token")
+  @ApiOperation({ summary: "Xác thực token đặt lại mật khẩu" })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: "Lỗi server.",
+  })
+  verifyToken(@Query("token") token: string) {
+    return this.authService.verifyToken(token);
   }
 }
