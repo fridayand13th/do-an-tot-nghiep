@@ -6,7 +6,6 @@ import {
   IsString,
   MaxLength,
 } from "class-validator";
-import { Op } from "sequelize";
 import { PaginateDto } from "src/common/dto/common.dto";
 import {
   INVALID_END_DATE,

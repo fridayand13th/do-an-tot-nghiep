@@ -15,7 +15,7 @@ import {
 import { Sequelize, where } from "sequelize";
 import { Op } from "sequelize";
 import { SearchTaskStatus, TaskAction, TaskStatus } from "src/enums/task.enum";
-import { buildDateFilter, toUtcDate } from "src/utils/date";
+import { buildDateFilter } from "src/utils/date";
 import { clearJsonString, getPagination } from "src/utils/common";
 import { GeminiService } from "src/shared/gemini/gemini.service";
 import { readPrompt, suggestionPrompt } from "src/utils/gemini-prompt";
@@ -48,7 +48,7 @@ export class TaskService {
 
   async createTask(createTaskDto: CreateTaskDto, userId: number) {
     const { name, status, startDate, endDate } = createTaskDto;
-    const toDoDay = new Date(startDate).getDay() + 1;
+    const toDoDay = new Date(startDate).getDate();
 
     const task = await this.findTaskByDate(startDate, endDate, userId);
 
@@ -61,14 +61,14 @@ export class TaskService {
       name: name.toLocaleLowerCase(),
       status,
       toDoDay,
-      startDate: toUtcDate(startDate),
-      endDate: toUtcDate(endDate),
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
     });
   }
 
   async updateTask(id: number, createTaskDto: CreateTaskDto, userId: number) {
     const { name, status, startDate, endDate } = createTaskDto;
-    const toDoDay = new Date(startDate).getDay() + 1;
+    const toDoDay = new Date(startDate).getDate();
 
     const task = await this.findTaskByDate(startDate, endDate, userId);
 
@@ -76,16 +76,18 @@ export class TaskService {
       throw new BadRequestException(EXIST_TASK_TIME);
     }
 
-    return await this.taskModel.update(
+    const updatedTask = await this.taskModel.update(
       {
         name: name.toLocaleLowerCase(),
         status,
         toDoDay,
-        startDate: toUtcDate(startDate),
-        endDate: toUtcDate(endDate),
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
       },
       { where: { id } }
     );
+
+    return updatedTask[0] > 0;
   }
 
   async deleteTask(id: number, userId: number) {
@@ -98,12 +100,13 @@ export class TaskService {
 
   async getAllTasks(getAllTasksDto: GetAllTasksDto, userId: number) {
     const { startDate, endDate } = getAllTasksDto;
-    return await this.taskModel.findAll({
+    const { page, take, offset } = getPagination(getAllTasksDto);
+    const tasks = await this.taskModel.findAll({
       where: {
         userId,
         startDate: {
-          [Op.gte]: toUtcDate(startDate),
-          [Op.lte]: toUtcDate(endDate),
+          [Op.gte]: new Date(startDate),
+          [Op.lte]: new Date(endDate),
         },
       },
       attributes: [
@@ -113,6 +116,14 @@ export class TaskService {
       group: ["toDoDay"],
       order: [["toDoDay", "ASC"]],
     });
+
+    return {
+      items: tasks,
+      count: 30,
+      totalPage: Math.ceil(30 / take),
+      currentPage: page,
+      take,
+    };
   }
 
   async findTaskByDate(startDate: string, endDate: string, userId: number) {
@@ -120,8 +131,8 @@ export class TaskService {
       where: {
         userId,
         startDate: {
-          [Op.gte]: toUtcDate(startDate),
-          [Op.lte]: toUtcDate(endDate),
+          [Op.gte]: new Date(startDate),
+          [Op.lte]: new Date(endDate),
         },
       },
     });
@@ -188,10 +199,10 @@ export class TaskService {
         oldEndDate,
       } = jsonRes;
 
-      let parsedStartDate = startDate ? toUtcDate(startDate) : null;
-      let parsedEndDate = endDate ? toUtcDate(endDate) : null;
-      let parsedOldStartDate = oldStartDate ? toUtcDate(oldStartDate) : null;
-      let parsedOldEndDate = oldEndDate ? toUtcDate(oldEndDate) : null;
+      let parsedStartDate = startDate ? new Date(startDate) : null;
+      let parsedEndDate = endDate ? new Date(endDate) : null;
+      let parsedOldStartDate = oldStartDate ? new Date(oldStartDate) : null;
+      let parsedOldEndDate = oldEndDate ? new Date(oldEndDate) : null;
 
       const toDoDay =
         parsedStartDate?.getDate() || parsedOldStartDate?.getDate();
