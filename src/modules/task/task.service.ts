@@ -18,7 +18,11 @@ import { SearchTaskStatus, TaskAction, TaskStatus } from "src/enums/task.enum";
 import { buildDateFilter } from "src/utils/date";
 import { clearJsonString, getPagination } from "src/utils/common";
 import { GeminiService } from "src/shared/gemini/gemini.service";
-import { readPrompt, suggestionPrompt } from "src/utils/gemini-prompt";
+import {
+  readPrompt,
+  suggestionPrompt,
+  useCasePrompt,
+} from "src/utils/gemini-prompt";
 import {
   DELETE_TASK,
   EXIST_TASK_TIME,
@@ -28,11 +32,9 @@ import {
 } from "src/common/messages/task.message";
 import { INVALID_PROMPT } from "src/common/messages/common.message";
 import { UNEXPECTED_PROMPT } from "src/constants/base.constant";
-import { Cron, CronExpression, Interval, Timeout } from "@nestjs/schedule";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import { MailService } from "../mail/mail.service";
 import { EmailTemplateNames } from "../mail/mail.constants";
-import moment from "moment-timezone";
-const userTimeZone = "Asia/Bangkok";
 
 @Injectable()
 export class TaskService {
@@ -160,7 +162,7 @@ export class TaskService {
       },
       offset,
       limit: take,
-      order: [["startDate", "ASC"]],
+      order: [["startDate", "DESC"]],
     });
 
     return {
@@ -178,6 +180,25 @@ export class TaskService {
   ) {
     try {
       let { prompt } = createTaskByGeminiDto;
+
+      let useCase_prompt = useCasePrompt(prompt);
+
+      const useCaseResponse = await this.geminiService.generateResponse(
+        useCase_prompt
+      );
+
+      const clearUseCaseResponse = clearJsonString(useCaseResponse);
+
+      const useCaseJsonRes = JSON.parse(clearUseCaseResponse);
+
+      if (useCaseJsonRes.answer != "LMAO") {
+        return {
+          message: useCaseJsonRes.answer,
+          method: null,
+          task: null,
+        };
+      }
+
       prompt = await readPrompt(prompt);
 
       const response = await this.geminiService.generateResponse(prompt);
@@ -185,7 +206,11 @@ export class TaskService {
       const jsonRes = JSON.parse(clearResponse);
 
       if (jsonRes.response == UNEXPECTED_PROMPT) {
-        throw new BadRequestException(INVALID_PROMPT);
+        return {
+          message: INVALID_PROMPT,
+          method: null,
+          task: null,
+        };
       }
 
       const {
@@ -239,18 +264,26 @@ export class TaskService {
             );
 
             return {
-              name: suggestName,
-              startDate,
-              endDate,
-              status: TaskStatus.OPEN,
+              method: TaskAction.SUGGEST,
+              task: {
+                name: suggestName,
+                startDate,
+                endDate,
+                status: TaskStatus.OPEN,
+              },
+              message: null,
             };
           }
 
           if (!name || !parsedStartDate || !parsedEndDate) {
-            throw new BadRequestException(MISSING_CREATE_TASK_DATA);
+            return {
+              message: MISSING_CREATE_TASK_DATA,
+              method: null,
+              task: null,
+            };
           }
 
-          return await this.taskModel.create({
+          const newTask = await this.taskModel.create({
             userId,
             name,
             status: TaskStatus.OPEN,
@@ -259,12 +292,26 @@ export class TaskService {
             endDate: parsedEndDate,
           });
 
+          return {
+            method: TaskAction.CREATE,
+            task: newTask,
+            message: null,
+          };
+
         case TaskAction.DELETE:
-          throw new BadRequestException(DELETE_TASK);
+          return {
+            message: DELETE_TASK,
+            method: null,
+            task: null,
+          };
 
         case TaskAction.FIND:
           if (!name || !parsedStartDate || !parsedEndDate) {
-            throw new BadRequestException(MISSING_TASK_DATA);
+            return {
+              message: MISSING_TASK_DATA,
+              method: null,
+              task: null,
+            };
           }
           if (parsedStartDate.getTime() === parsedEndDate.getTime()) {
             parsedEndDate.setDate(parsedEndDate.getDate() + 1);
@@ -277,12 +324,25 @@ export class TaskService {
               toDoDay,
             },
           });
-          if (!task) throw new BadRequestException(NOT_FOUND_TASK);
-          return task;
+          if (!task)
+            return {
+              message: NOT_FOUND_TASK,
+              method: null,
+              task: null,
+            };
+          return {
+            method: TaskAction.FIND,
+            task,
+            message: null,
+          };
 
         case TaskAction.UPDATE:
           if (!oldName || !parsedOldStartDate || !parsedOldEndDate) {
-            throw new BadRequestException(MISSING_TASK_DATA);
+            return {
+              message: MISSING_TASK_DATA,
+              method: null,
+              task: null,
+            };
           }
           const existingTask = await this.taskModel.findOne({
             where: {
@@ -293,22 +353,37 @@ export class TaskService {
               toDoDay,
             },
           });
-          if (!existingTask) throw new BadRequestException(NOT_FOUND_TASK);
-          if (taskFromDb && existingTask.id !== taskFromDb.id)
-            throw new BadRequestException(EXIST_TASK_TIME);
-          return await existingTask.update({
+          if (!existingTask)
+            return {
+              message: NOT_FOUND_TASK,
+              method: null,
+              task: null,
+            };
+          if (taskFromDb && existingTask.id !== taskFromDb.id) {
+            return {
+              message: EXIST_TASK_TIME,
+              method: null,
+              task: null,
+            };
+          }
+
+          const updatedTask = await existingTask.update({
             name: name || existingTask.name,
             startDate: parsedStartDate || existingTask.startDate,
             endDate: parsedEndDate || existingTask.endDate,
             toDoDay,
             status: status || existingTask.status,
           });
+
+          return {
+            method: TaskAction.UPDATE,
+            task: updatedTask,
+            message: null,
+          };
       }
     } catch (error) {
       console.error("Error in CRUDTaskByGemini:", error);
-      throw error.status
-        ? error
-        : new InternalServerErrorException("Failed to process task request");
+      throw new InternalServerErrorException("Failed to process task request");
     }
   }
 

@@ -18,4 +18,5 @@ export enum TaskAction {
   UPDATE = "update",
   DELETE = "delete",
   FIND = "find",
+  SUGGEST = "suggest",
 }
