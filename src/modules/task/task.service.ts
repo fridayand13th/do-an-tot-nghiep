@@ -15,7 +15,7 @@ import {
 import { Sequelize, where } from "sequelize";
 import { Op } from "sequelize";
 import { SearchTaskStatus, TaskAction, TaskStatus } from "src/enums/task.enum";
-import { buildDateFilter } from "src/utils/date";
+import { buildDateFilter, IsEarlierEndDate } from "src/utils/date";
 import { clearJsonString, getPagination } from "src/utils/common";
 import { GeminiService } from "src/shared/gemini/gemini.service";
 import {
@@ -30,11 +30,15 @@ import {
   MISSING_TASK_DATA,
   NOT_FOUND_TASK,
 } from "src/common/messages/task.message";
-import { INVALID_PROMPT } from "src/common/messages/common.message";
+import {
+  INVALID_PROMPT,
+  VALIDATE_DATE_MESSAGE,
+} from "src/common/messages/common.message";
 import { UNEXPECTED_PROMPT } from "src/constants/base.constant";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { MailService } from "../mail/mail.service";
 import { EmailTemplateNames } from "../mail/mail.constants";
+import { ErrorHelper } from "src/helpers/error.utils";
 
 @Injectable()
 export class TaskService {
@@ -50,6 +54,15 @@ export class TaskService {
 
   async createTask(createTaskDto: CreateTaskDto, userId: number) {
     const { name, status, startDate, endDate } = createTaskDto;
+
+    if (
+      startDate &&
+      endDate &&
+      !IsEarlierEndDate(new Date(startDate), new Date(endDate))
+    ) {
+      ErrorHelper.BadRequestException(VALIDATE_DATE_MESSAGE);
+    }
+
     const toDoDay = new Date(startDate).getDate();
 
     const task = await this.findTaskByDate(startDate, endDate, userId);
@@ -70,6 +83,15 @@ export class TaskService {
 
   async updateTask(id: number, createTaskDto: CreateTaskDto, userId: number) {
     const { name, status, startDate, endDate } = createTaskDto;
+
+    if (
+      startDate &&
+      endDate &&
+      !IsEarlierEndDate(new Date(startDate), new Date(endDate))
+    ) {
+      ErrorHelper.BadRequestException(VALIDATE_DATE_MESSAGE);
+    }
+
     const toDoDay = new Date(startDate).getDate();
 
     const task = await this.findTaskByDate(startDate, endDate, userId);
@@ -228,6 +250,22 @@ export class TaskService {
       let parsedEndDate = endDate ? new Date(endDate) : null;
       let parsedOldStartDate = oldStartDate ? new Date(oldStartDate) : null;
       let parsedOldEndDate = oldEndDate ? new Date(oldEndDate) : null;
+
+      if (
+        startDate &&
+        endDate &&
+        !IsEarlierEndDate(new Date(startDate), new Date(endDate))
+      ) {
+        ErrorHelper.BadRequestException(VALIDATE_DATE_MESSAGE);
+      }
+
+      if (
+        oldStartDate &&
+        oldEndDate &&
+        !IsEarlierEndDate(new Date(oldStartDate), new Date(oldEndDate))
+      ) {
+        ErrorHelper.BadRequestException(VALIDATE_DATE_MESSAGE);
+      }
 
       const toDoDay =
         parsedStartDate?.getDate() || parsedOldStartDate?.getDate();
