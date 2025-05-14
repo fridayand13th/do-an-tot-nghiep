@@ -1,34 +1,41 @@
 export async function readPrompt(prompt: string): Promise<string> {
-  return `Hãy tách thời gian, công việc(Các hoạt động hằng ngày, thường bắt đầu bằng động từ) và hành động(thường là: thêm, sửa, xóa, tìm) khỏi câu sau: "${prompt}".
-  Nếu không có ngày tháng năm cụ thể thì hãy tạo ngày tháng năm dựa trên thời gian được cung cấp và thời gian hiện tại ${new Date()}. Lưu ý tôi ở Việt Nam và sử dụng múi giờ GMT+7.
-  Nếu hành động là "Tạo" hoặc các từ đồng nghĩa thì trả về là "create", 
-  nếu hành động là "Sửa" hoặc các từ đồng nghĩa thì trả về là "update", 
-  nếu hành động là "Xóa" hoặc các từ đồng nghĩa thì trả về là "delete".
-  Nếu hành động là "Tìm lịch/ công viêc" hoặc các từ đồng nghĩa thì trả về là "find".
-  Trạng thái sẽ tương ứng với enum sau:
-  enum TaskStatus {
+  return `You are given a user sentence in VietNamese: "${prompt}".
+
+Your task is to extract the following components:
+1. **Action**: One of these values — "create", "update", "delete", "find".
+2. **Task name**: This is a description of the task (typically a daily activity, for example: "Đi học, ..."). PLEASE REMEMBER: Words like "công việc", "Tìm" or "lịch" are not valid task names.
+3. **Start and end time**: If dates are not provided explicitly, infer them from the current time: ${new Date()}, using Vietnam timezone (GMT+7). If the date is provided but no time is given, default to 00:00 for start time and 23:59 for end time. The format should be "yyyy-mm-ddThh:mm:ss.msmsmsZ.".
+4. **Status**: Match this enum:
+enum TaskStatus {
   OPEN = "Chưa xử lý",
   IN_PROGRESS = "Đang xử lý",
   DONE = "Đã xử lý",
-  CANCEL = "Hủy",
-  },  
-  Nếu không nói gì về trạng thái thì trả về là "Chưa xử lý" đối với hành động "Tạo/ Thêm"
-  Nếu không nói gì về ngày tháng thì mặc định là null,
-  Tên của công việc hãy viết thường
-  Nếu hành động là "sửa" mà không có tên công việc mới thì hãy cho tên mới là tên cũ
-  Hãy trả về theo dạng dưới đây và Chỉ cần đưa ra kết quả, không cần giải thích gì thêm.
-  {
-    "startDate": "",
-    "endDate": "",
-    "name": "Đi học",
-    "oldName":"Đi chơi" || null,
-    "oldStartDate": "" || null,
-    "oldEndDate": "" || null,
-    "action": "Tạo",
-    "status": "Chưa xử lý"
-  }
+  CANCEL = "Hủy"
+}
+Rules:
+For "create" actions with no status mentioned, default to "Chưa xử lý".
 
-  Nếu không có bất kỳ phần tử phù hợp(ngày tháng, tên công việc, hành động) hãy trả về {"response": 0}
+If no dates are found, return null for startDate and endDate.
+
+Use lowercase for the task name.
+
+For "update" actions, if a new task name is not provided, reuse the old name.
+
+Return only a result in the format shown below. Do not explain anything.
+
+Output Format:
+{
+  "startDate": "yyyy-mm-ddThh:mm",
+  "endDate": "yyyy-mm-ddThh:mm",
+  "name": "task name",
+  "oldName": "previous task name" || null,
+  "oldStartDate": "yyyy-mm-ddThh:mm" || null,
+  "oldEndDate": "yyyy-mm-ddThh:mm" || null,
+  "action": "create" | "update" | "delete" | "find",
+  "status": "Chưa xử lý" | "Đang xử lý" | "Đã xử lý" | "Hủy"
+}
+If nothing relevant (date, name, action) is found, return:
+{ "response": 0 }
   `;
 }
 

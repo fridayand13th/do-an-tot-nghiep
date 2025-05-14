@@ -15,7 +15,13 @@ import {
 import { Sequelize, where } from "sequelize";
 import { Op } from "sequelize";
 import { SearchTaskStatus, TaskAction, TaskStatus } from "src/enums/task.enum";
-import { buildDateFilter, IsEarlierEndDate } from "src/utils/date";
+import {
+  buildDateFilter,
+  getUtcForLocalDayV2,
+  getUtcRangeForLocalDay,
+  IsEarlierEndDate,
+  toUtcDate,
+} from "src/utils/date";
 import { clearJsonString, getPagination } from "src/utils/common";
 import { GeminiService } from "src/shared/gemini/gemini.service";
 import {
@@ -76,8 +82,8 @@ export class TaskService {
       name: name.toLocaleLowerCase(),
       status,
       toDoDay,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: toUtcDate(startDate),
+      endDate: toUtcDate(endDate),
     });
   }
 
@@ -105,8 +111,8 @@ export class TaskService {
         name: name.toLocaleLowerCase(),
         status,
         toDoDay,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: toUtcDate(startDate),
+        endDate: toUtcDate(endDate),
       },
       { where: { id } }
     );
@@ -155,8 +161,8 @@ export class TaskService {
       where: {
         userId,
         startDate: {
-          [Op.gte]: new Date(startDate),
-          [Op.lte]: new Date(endDate),
+          [Op.gte]: toUtcDate(startDate),
+          [Op.lte]: toUtcDate(endDate),
         },
       },
     });
@@ -235,7 +241,7 @@ export class TaskService {
         };
       }
 
-      const {
+      let {
         name,
         startDate,
         endDate,
@@ -245,6 +251,8 @@ export class TaskService {
         oldStartDate,
         oldEndDate,
       } = jsonRes;
+
+      console.log("jsonRes", jsonRes);
 
       let parsedStartDate = startDate ? new Date(startDate) : null;
       let parsedEndDate = endDate ? new Date(endDate) : null;
@@ -344,7 +352,7 @@ export class TaskService {
           };
 
         case TaskAction.FIND:
-          if (!name || !parsedStartDate || !parsedEndDate) {
+          if (!name && !parsedStartDate && !parsedEndDate) {
             return {
               message: MISSING_TASK_DATA,
               method: null,
@@ -354,12 +362,18 @@ export class TaskService {
           if (parsedStartDate.getTime() === parsedEndDate.getTime()) {
             parsedEndDate.setDate(parsedEndDate.getDate() + 1);
           }
-          const task = await this.taskModel.findOne({
+
+          if (name == "công việc" || name == "lịch") {
+            name = null;
+          }
+
+          const task = await this.taskModel.findAll({
             where: {
               userId,
-              name: { [Op.like]: `%${name}%` },
-              startDate: { [Op.gte]: parsedStartDate, [Op.lte]: parsedEndDate },
-              toDoDay,
+              ...(name && { name: { [Op.like]: `%${name}%` } }),
+              ...(startDate && { startDate: { [Op.gte]: parsedStartDate } }),
+              ...(endDate && { endDate: { [Op.lte]: parsedEndDate } }),
+              ...(status && { status }),
             },
           });
           if (!task)
@@ -425,13 +439,41 @@ export class TaskService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_10PM)
-  private async cronjobReminder() {
+  @Cron(CronExpression.EVERY_DAY_AT_8PM)
+  private async cronjobReminderUnfinishedTask() {
     const now = new Date();
-    const start_of_day = new Date(
-      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-    );
+    const { start: startDate, end: endDate } = getUtcRangeForLocalDay(now);
 
+    const tasks = await this.getListUserHaveUnfinishedTask(startDate, endDate);
+
+    await Promise.all(
+      tasks.map(async (task) => {
+        const userTask = await this.taskModel.findAll({
+          where: {
+            userId: task.userId,
+            status: TaskStatus.OPEN,
+            endDate: {
+              [Op.gte]: startDate,
+              [Op.lt]: endDate,
+            },
+          },
+          raw: true,
+        });
+
+        await this.MailService.sendMail(
+          task.user.email,
+          EmailTemplateNames.REMINDER,
+          {
+            email: task.user.email || "",
+            tasks: userTask,
+            supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
+          }
+        );
+      })
+    );
+  }
+
+  private async getListUserHaveUnfinishedTask(startDate: Date, endDate: Date) {
     const tasks = await this.taskModel.findAll({
       attributes: [
         "userId",
@@ -440,8 +482,8 @@ export class TaskService {
       where: {
         status: TaskStatus.OPEN,
         endDate: {
-          [Op.gte]: start_of_day,
-          [Op.lt]: new Date(new Date().setHours(23, 59, 59, 999)),
+          [Op.gte]: startDate,
+          [Op.lt]: endDate,
         },
       },
       include: [{ model: Users, attributes: ["email"] }],
@@ -450,11 +492,122 @@ export class TaskService {
       nest: true,
     });
 
-    tasks.forEach((task) => {
-      this.MailService.sendMail(task.user.email, EmailTemplateNames.REMINDER, {
-        email: task.user.email || "",
-        supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
-      });
+    return tasks;
+  }
+
+  private async getListUserHaveIncomingTask(startDate: Date, endDate: Date) {
+    const tasks = await this.taskModel.findAll({
+      attributes: [
+        "userId",
+        [Sequelize.fn("COUNT", Sequelize.col("Tasks.id")), "taskCount"],
+      ],
+      where: {
+        status: TaskStatus.OPEN,
+        startDate: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+      },
+      include: [{ model: Users, attributes: ["email"] }],
+      group: ["userId", "user.id"],
+      raw: true,
+      nest: true,
     });
+
+    return tasks;
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_8PM)
+  private async cronjobRemindeInCommingTask() {
+    const now = new Date();
+    const nextDay = new Date(
+      Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0)
+    );
+
+    const { start: startDate, end: endDate } = getUtcRangeForLocalDay(nextDay);
+
+    const tasks = await this.getListUserHaveIncomingTask(startDate, endDate);
+
+    await Promise.all(
+      tasks.map(async (task) => {
+        const userTask = await this.taskModel.findAll({
+          where: {
+            userId: task.userId,
+            status: TaskStatus.OPEN,
+            startDate: {
+              [Op.gte]: startDate,
+              [Op.lte]: endDate,
+            },
+          },
+          raw: true,
+        });
+
+        await this.MailService.sendMail(
+          task.user.email,
+          EmailTemplateNames.REMINDER_INCOMING_TASK,
+          {
+            email: task.user.email || "",
+            tasks: userTask,
+            supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
+          }
+        );
+      })
+    );
+  }
+
+  private async getListUserHaveIncomingTaskUnderOneHour(startDate: Date) {
+    const tasks = await this.taskModel.findAll({
+      attributes: [
+        "userId",
+        [Sequelize.fn("COUNT", Sequelize.col("Tasks.id")), "taskCount"],
+      ],
+      where: {
+        status: TaskStatus.OPEN,
+        startDate: startDate,
+      },
+      include: [{ model: Users, attributes: ["email"] }],
+      group: ["userId", "user.id"],
+      raw: true,
+      nest: true,
+    });
+
+    return tasks;
+  }
+
+  @Cron(CronExpression.EVERY_5_SECONDS)
+  private async cronjobRemindeInCommingTaskUnderOneHour() {
+    const startDate = new Date();
+    startDate.setUTCHours(
+      startDate.getHours() + 1,
+      startDate.getMinutes(),
+      startDate.getSeconds(),
+      0
+    );
+
+    const tasks = await this.getListUserHaveIncomingTaskUnderOneHour(startDate);
+
+    await Promise.all(
+      tasks.map(async (task) => {
+        const userTask = await this.taskModel.findOne({
+          where: {
+            userId: task.userId,
+            status: TaskStatus.OPEN,
+            startDate,
+          },
+          raw: true,
+        });
+
+        await this.MailService.sendMail(
+          task.user.email,
+          EmailTemplateNames.REMINDER_INCOMING_TASK_UNDER_ONE_HOUR,
+          {
+            email: task.user.email || "",
+            startDate: userTask.startDate,
+            name: userTask.name,
+            supportEmail: this.configService.get<string>("SUPPORT_EMAIL"),
+          }
+        );
+      })
+    );
   }
 }
